@@ -10,7 +10,9 @@ Incarnate for WordPress brings a rich avatar experience to your comments.  Enter
 handle from the web and easily select an avatar for a comment from providers like Facebook, Twitter, YouTube, MySpace and Gravatar. 
 
 == Description ==
-Long Description Here
+Incarnate for WordPress brings a rich avatar experience to your comments.  Enter a 
+handle from the web and easily select an avatar for a comment from providers like Facebook, Twitter, YouTube, MySpace and Gravatar. 
+
 
 == Installation ==
 1. Upload the wp-incarnate folder to the `/wp-content/plugins/` directory (this includes wp-incarnate.php, incarnate.js and an images foler).
