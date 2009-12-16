@@ -4,15 +4,16 @@ Donate link: http://www.visitmix.com/
 Tags: comments, spam, avatar, incarnate, gravatar
 Requires at least: 2.8.0
 Tested up to: 2.8.6
-Stable tag: trunk
+Stable tag: 1.1
 
 Incarnate for WordPress brings a rich avatar experience to your comments.  Enter a 
-handle from the web and easily select an avatar for a comment from providers like Facebook, Twitter, YouTube, MySpace and Gravatar. 
+handle from the web and easily select an avatar for a comment from providers like Facebook, 
+Twitter, YouTube, MySpace and Gravatar. 
 
 == Description ==
 Incarnate for WordPress brings a rich avatar experience to your comments.  Enter a 
-handle from the web and easily select an avatar for a comment from providers like Facebook, Twitter, YouTube, MySpace and Gravatar. 
-
+handle from the web and easily select an avatar for a comment from providers like Facebook, 
+Twitter, YouTube, MySpace and Gravatar. 
 
 == Installation ==
 1. Upload the wp-incarnate folder to the `/wp-content/plugins/` directory (this includes wp-incarnate.php, incarnate.js and an images foler).
@@ -41,9 +42,26 @@ This HTML snippet works in conjunction with the incarnate.js file, which is wher
 
 == Changelog ==
 
+= 1.1 =
+* Fixed path issue with images
+* Fixed options page cross-browser issues
+* Fixed comment Gravatars that pre-date Incarnate installation
+
 = 1.0 =
 * Launching the plug-in for (http://www.visitmix.com/ "MIX ONLINE")
 
 == Power User Help ==
-You may need to include the custom template tags if you don't automatically see the Incarnate UI.  This is accomplished
-by adding ...
+The Incarnate plug-in has two parts. First is the comment form. This will allow a commentor to select an avatar. The second part is the avatar display.
+Comment Form
+
+Normally "Automatically Add To Comments" will add the form using JavaScript. Some themes will make this impossible. For these you will need to add the comment form manually.
+
+First, uncheck the box for "Automatically Add To Comments" and save the changes. Next: add this code to your comment template right before the "Author" input field.
+
+<?php if(function_exists('incarnate_for_wordpress_insert_ui')) { incarnate_for_wordpress_insert_ui(); } ?>
+
+Avatar Display
+
+Normally a theme will call "get_avatar" to display the avatar next to each comment. If that's not the case then you need to add the code below inside of each comment.
+
+<?php if(function_exists('incarnate_for_wordpress_insert_avatar')) { incarnate_for_wordpress_insert_avatar($comment); } ?>
