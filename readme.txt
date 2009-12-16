@@ -50,6 +50,11 @@ This HTML snippet works in conjunction with the incarnate.js file, which is wher
 = 1.0 =
 * Launching the plug-in for (http://www.visitmix.com/ "MIX ONLINE")
 
+== Upgrade Notice ==
+
+= 1.1 =
+Please upgrade to fix image issues and to bring back your saved Gravatars.
+
 == Power User Help ==
 The Incarnate plug-in has two parts. First is the comment form. This will allow a commentor to select an avatar. The second part is the avatar display.
 Comment Form
