@@ -4,7 +4,7 @@ Plugin Name: Incarnate for WordPress
 Plugin URI: http://www.visitmix.com/labs/incarnate
 Description: Pull in profiles from the web to enhance your blog's commenting experience.
 Author: MIX ONLINE
-Version: 1.0
+Version: 1.1
 Author URI: http://www.visitmix.com/labs/incarnate
 */
 
