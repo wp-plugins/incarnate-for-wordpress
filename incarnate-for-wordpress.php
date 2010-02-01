@@ -98,25 +98,33 @@ if( !function_exists('get_avatar') ) {
 	function get_avatar($id_or_email_or_comment,$size) {
 		if( is_object($id_or_email_or_comment) ) {
 			$comment = $id_or_email_or_comment;
+		} else {
+			global $comment;
 		}
 		
-		if ( ! $comment ) {
-			global $comment; // this will be a global set from our custom incarnate_for_wordpress_comment function
-			if ( ! $comment ) return false; // skip out if this isn't our call
-		}
 		if ( ! get_option('show_avatars') ) return false;
 		if ( is_admin() ) return false; /* admin doesn't get comment objects, just id/email */
 
 		if ( !is_numeric($size) )
 			$size = '96';
 
-		$out = incarnate_for_wordpress_get_avatar_by_comment($comment);
+		if(!$comment) {
+			if(is_numeric($id_or_email_or_comment)) {
+				// a user id, load that data
+				$out = incarnate_for_wordpress_get_avatar_byuserid($id_or_email_or_comment, $size);
+			} else {
+				// probably an email...?
+				$out = incarnate_for_wordpress_get_avatar_byemail($id_or_email_or_comment, $size);
+			}
+		} else {
+			$out = incarnate_for_wordpress_get_avatar_by_comment($comment);
+		}
 		$avatar = "<img src='{$out}' class='avatar avatar-{$size} photo'  width='{$size}' />";
 		
 		return apply_filters('get_avatar', $avatar, $id_or_email, $size, $default, $alt);
 	}
 }
-
+ 
 /**
  * This function can be used inside of wp_comment_list on really weird themes that override
  * the comment functionality.
@@ -290,7 +298,6 @@ CODEEXAMPLE
 function add_form_field($id) {
 	// only if the user has set the auto option
 	if(get_option("incarnate_for_wordpress_autoinsert") != FALSE) {
-		echo("OPTION: " . get_option("incarnate_for_wordpress_autoinsert"));
 		incarnate_for_wordpress_render_ui();
 	}
 }
@@ -404,18 +411,26 @@ function incarnate_for_wordpress_render_ui($auto = true) {
 		html += '<label><br />';
 		html += '<small>Your Gravatar</small></label>';
 		<?php else : ?>
-		html += '<input id="IncarnateUserName" type="text" />';
-		html += '<input id="IncarnateActivate" style="width: 35px;" type="button" value="Find" />';
+		html += '<input id="IncarnateUserName" type="text" size="48" style="width: 225px" />';
+		html += '<input id="IncarnateActivate" style="margin-left: 20px; width: 45px;" type="button" value="Find" />';
 		html += '<img style="display: none;" id="IncarnateLoader" src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/loader.gif" />';
-		html += '<label><br />';
-		html += '<small>Enter your name, handle, alias, or email.<br />';
-		html += 'We\'ll find you from the services below.<br /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Twitter.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Facebook.png" /><img src="<?php echo(WP_PLUGIN_URL) ?>/incarnate-for-wordpress/images/MySpace.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/YouTube.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Gravatar.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/XBoxLive.png" /></small></label>';
+		html += '<div style="display: block; float: left; width: 250px;"';
+		html += '<label>';
+		html += '<small>Enter your name, handle, alias, or email. ';
+		html += 'We\'ll find you from the services below.<br /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Twitter.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Facebook.png" /><img src="<?php echo(WP_PLUGIN_URL) ?>/incarnate-for-wordpress/images/MySpace.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/YouTube.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Gravatar.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/XBoxLive.png" /></small>';
+		html += '</label></div>';
 		html += '</p>';
 		html += '<div id="IncarnateResultsContainer" style="display: none;background:#fff;position:absolute;border:1px solid #999;width:100px"></div>';
 		<?php endif; ?>
-		
-		<?php if($auto) : ?>
-		jQuery("form[@action*=wp-comments-post] p:first-child").parent().prepend("<p>" + html + "</p>");
+		html += '<div style="clear: both;">&nbsp;</div>';
+		   
+		<?php if($auto) : ?> 
+		if(incarnateFormHasRendered == false) {
+			// pull in the tag type from the children of the form (some people use 'div', some 'p')
+			var tagType = jQuery("form[action*=wp-comments-post]").children(":first").get(0).tagName.toLowerCase() == "p" ? "p" : "div";
+			jQuery("form[action*=wp-comments-post]").prepend("<" + tagType + " style=\"text-align: left;\">" + html + "</" + tagType + ">");
+			incarnateFormHasRendered = true;
+		}
 		<?php else : ?>
 		document.write(html);
 		<?php endif; ?>
@@ -525,7 +540,7 @@ function incarnate_for_wordpress_get_gravatar_by_comment($comment = FALSE) {
 		$email = $id_or_email;
 	}
 	
-		if ( empty($default) ) {
+	if ( empty($default) ) {
 		$avatar_default = get_option('avatar_default');
 		if ( empty($avatar_default) )
 			$default = 'mystery';
@@ -563,20 +578,57 @@ function incarnate_for_wordpress_get_gravatar_by_comment($comment = FALSE) {
 
 		return $out;
 	} 
-	
+	 
 	return FALSE;
 }
 
 function incarnate_for_wordpress_get_currentuser_avatar() {
 	$email = "";
+
 	$size = 64;
 
 	global $user_login , $user_email;
 	get_currentuserinfo();
 
 	if ($user_email) {  $email = $user_email; } else return incarnate_for_wordpress_get_default_avatar();
+  
+	return incarnate_for_wordpress_get_avatar_byemail($email, $size);
+}
 
+function incarnate_for_wordpress_get_avatar_byuserid($id, $size) {
+	$email = "";
+	 
+	global $user_login , $user_email;
+	$user = get_userdata($id);
+	
+	if ($user->user_email) {  $email = $user->user_email; } else return incarnate_for_wordpress_get_default_avatar();
+
+	return incarnate_for_wordpress_get_avatar_byemail($email, $size);
+}
+
+function incarnate_for_wordpress_get_avatar_byemail($email, $size) {
 	if ( is_ssl() ) { $host = 'https://secure.gravatar.com'; } else { $host = 'http://www.gravatar.com'; }
+
+	if ( empty($default) ) {
+		$avatar_default = get_option('avatar_default');
+		if ( empty($avatar_default) )
+			$default = 'mystery';
+		else
+			$default = $avatar_default;
+	}
+
+	if ( 'mystery' == $default )
+		$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
+	elseif ( 'blank' == $default )
+		$default = includes_url('images/blank.gif');
+	elseif ( !empty($email) && 'gravatar_default' == $default )
+		$default = '';
+	elseif ( 'gravatar_default' == $default )
+		$default = "$host/avatar/s={$size}";
+	elseif ( empty($email) )
+		$default = "$host/avatar/?d=$default&amp;s={$size}";
+	elseif ( strpos($default, 'http://') === 0 )
+		$default = add_query_arg( 's', $size, $default );
 
 	$out = "$host/avatar/";
 	$out .= md5( strtolower( $email ) );
