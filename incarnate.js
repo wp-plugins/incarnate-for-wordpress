@@ -20,7 +20,7 @@ jQuery(document).ready(function() {
 	}
 
     // @see incarnate.svc/providers (json) or incarnate.svc/providers.xml
-    var providers = ["Twitter", "MySpace", "Facebook", "Gravatar", "YouTube", "XBoxLive"];
+    var providers = ["Twitter", "MySpace", "Facebook", "YouTube", "XBoxLive"];
 
     var avatars = [];
     var index = 0; // paging
