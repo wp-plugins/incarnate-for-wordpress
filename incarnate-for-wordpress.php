@@ -4,7 +4,7 @@ Plugin Name: Incarnate for WordPress
 Plugin URI: http://www.visitmix.com/labs/incarnate
 Description: Pull in profiles from the web to enhance your blog's commenting experience.
 Author: MIX ONLINE
-Version: 1.1
+Version: 1.3
 Author URI: http://www.visitmix.com/labs/incarnate
 */
 
@@ -169,7 +169,6 @@ function incarnate_for_wordpress_install() {
 
 	// create and update all applicable options
     update_option('incarnate_for_wordpress_version', INCARNATE_FOR_WORDPRESS_VERSION);
-	add_option('incarnate_for_wordpress_endpoint', 'http://incarnate.visitmix.com/incarnate.svc');
 	add_option('incarnate_for_wordpress_autoinsert', true);
 	
     add_option('incarnate_for_wordpress_uninstall_flag', '');
@@ -181,7 +180,6 @@ function incarnate_for_wordpress_install() {
 function incarnate_for_wordpress_uninstall() {
 	if(get_option('incarnate_for_wordpress_uninstall_flag') !== FALSE) {
 		delete_option('incarnate_for_wordpress_uninstall_flag');
-		delete_option('incarnate_for_wordpress_endpoint');
 		delete_option('incarnate_for_wordpress_autoinsert');
 	}
 }
@@ -217,52 +215,69 @@ function incarnate_for_wordpress_options() {
  * Displays the HTML for the admin options page
  */
 function incarnate_for_wordpress_options_html() {
-	if (isset($_POST['submit'])) {
-		update_option('incarnate_for_wordpress_endpoint', $_POST['incarnate_endpoint']);
-		update_option('incarnate_for_wordpress_autoinsert', ($_POST['incarnate_autoinsert'] == "on"));
-	}
+	echo("<div class='wrap'>");
+
+	if (isset($_POST['gofinal'])) {
+		/**** FINAL SUBMISSION PAGE ****************************************************************/
 	?>
-	<div class='wrap'>
+		<div id='icon-tools' class='icon32'><br /></div>
+		<h2>Incarnate Manual Setup</h2>
+		
+		<p>You're switched!  Thanks for setting up Incarnate for WordPress.  If you need more help, please consult the documentation.  It's always up to date at the <a href="http://wordpress.org/extend/plugins/incarnate-for-wordpress/installation/">WordPress Plug-in Directory</a>.</p>
+		
+		<p><a href="?page=incarnate-for-wordpress-options">Back to Settings</a></p>
+	<?php
+	} else {
+		/**** DEFAULT OPTIONS PAGE *****************************************************************/
+	?>
 		<div id='icon-tools' class='icon32'><br /></div>
 		<h2>Incarnate Options</h2>
 
-		<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+		<div>
+		Incarnate works automatically with most themes.  
+		
+		<script type="text/javascript">
+		jQuery(document).ready(function () {
+			jQuery("#show-help").click(function () {
+				jQuery('#incarnate-help').toggle();
+			});
+			
+			jQuery("#switch-to-manual").click(function () {
+				jQuery('#incarnate-help').hide();	
+				jQuery('#manual-help').toggle();
+			});
+		});
+		</script> 
+		<small><a id="show-help" href="#">Not working?</a></small>
+		</div>
+		
 		<table class="form-table">
 		<tr valign="top">
-			<th scope="row"><label for="incarnate_endpoint">Webservice URL:</label></th>
+			<th scope="row"><label for="incarnate_autoinsert"><strong>Configuration:</strong></label></th>
 			<td>
-				<input name="incarnate_endpoint" id="incarnate_endpoint" size="64" value="<?php echo get_option('incarnate_for_wordpress_endpoint'); ?>" /><br />
-				<span class="description">You can host your own Incarnate webservice on Azure or use a publicly available one.</span>
+				<div id='incarnate-auto yes'>Automatic</div>
+				<p><a id="switch-to-manual" href="#">Switch to Manual</a></p>
 			</td>
-		</tr>
-		<tr valign="top">
-			<th scope="row"><label for="incarnate_autoinsert">Automatically Add To Comments:</label></th>
-			<td>
-				<input type="checkbox" name="incarnate_autoinsert" id="incarnate_autoinsert" <?php echo (get_option('incarnate_for_wordpress_autoinsert')) ? "checked" : ""; ?> />
-				<span class="description">Use JavaScript for zero-config installation. <br /> Power Users will want to read on below.</span>
-			</td>
-		</tr>
+		</tr> 
 		</table>
 
-		<div class="submit">
-			<input type="submit" name="submit" value="Update Options" />
+		<div id="incarnate-help" style="display: none;">
+		<h3>Help!</h3>
+			Incarnate has two major parts:
+			<ul style="list-style-type: square; margin: 15px;">
+			<li>Incarnate Avatar Form</li>
+			<li>Comment Avatars <i>(Note: please be sure to turn on "Show Avatars" in your WordPress <a href="options-discussion.php">Discussion settings</a>)</i></li>
+			</ul> 
+			If they don't show up automatically, we can guide you through adding each piece to your theme.  Just click "Switch To Manual".
 		</div>
-
-		</form>
-				
-				
-		<div class="themehelp">
-			<h3>Power Users - Manual Installation</h3>
-			The Incarnate plug-in has two parts.  First is the comment form.  This will allow a commentor to 
-			select an avatar.  The second part is the avatar display.
-			
-			<h4>Comment Form</h4>
-			<p>Normally "Automatically Add To Comments" will add the form using JavaScript.  Some themes will 
-			make this impossible.  For these you will need to add the comment form manually.</p>
-			
-			<p>First, uncheck the box for "Automatically Add To Comments" and save the changes.  Next: add this code to your comment template right before the "Author" input field.</p>
-			
+	
+		<div id="manual-help" style="display: none;">
+		<h3>Switch To Manual</h3>
+		When you switch to manual you'll need to add Incarnate to your theme using the <a href="theme-editor.php">WordPress theme editor</a>.  Incarnate should be placed in the comments.php page.  Read on for details on each part.
+			<h4>Incarnate Avatar Form</h4>
 			<p>
+			You'll need to look carefull through your comments.php file and find the new comment form.  It starts with &lt;form&gt; and has &lt;input&gt;'s for each input box.  You can insert the Incarnate form inside the &lt;form&gt;.  Go back to your site and preview it.
+			</p><p>
 			<code>
 			<?php
 echo <<<CODEEXAMPLE
@@ -273,12 +288,12 @@ CODEEXAMPLE
 			</p>
 			
 			<h4>Avatar Display</h4>
-			<p>Normally a theme will call "get_avatar" to display the avatar next to each comment.  If that's not
-			the case then you need to add the code below inside of each comment.</p>
-			
 			<p>
+			To test the avatars you'll need to log out and try submitting a comment.  If you pick an avatar but it doesn't display by the comment you'll need to
+			add this line to comments.php:
+			</p><p>
 			<code>
-			<?php
+			<?php 
 echo <<<CODEEXAMPLE
 &lt;?php if(function_exists('incarnate_for_wordpress_insert_avatar')) { incarnate_for_wordpress_insert_avatar(\$comment); } ?&gt;
 CODEEXAMPLE
@@ -286,7 +301,18 @@ CODEEXAMPLE
 			</code>
 			</p>
 
+			<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+			<div class="submit">
+					<input type="hidden" name="gofinal" value="true" />
+					<input type="submit" name="submit" value="Switch To Manual & Continue" />
+			</div>
+			</form> 
+
 		</div> <!-- /themehelp -->
+
+	<?php 
+	}
+	?>
 	</div> <!-- /wrap -->
 	<?php
 }
@@ -347,7 +373,7 @@ function incarnate_for_wordpress_add_scriptlet() {
 	//<!CDATA[
 		// used to find the service and ajax images in the javascript
 		function getIncarnateImageRoot() { return "<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/"; }
-		function getIncarnateWebservice() { return "<?php echo(get_option('incarnate_for_wordpress_endpoint')); ?>"; }
+		function getIncarnateWebservice() { return "http://incarnate.visitmix.com/incarnate.svc"; }
 		function getIncarnateLoggedIn() { return <?php echo(is_user_logged_in() ? "true" : "false"); ?>; }
 		function getIncarnateDefaultImage() { 
 			return "<?php echo(incarnate_for_wordpress_get_default_avatar()); ?>"; 
