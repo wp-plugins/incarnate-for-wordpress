@@ -2,9 +2,9 @@
 /*
 Plugin Name: Incarnate for WordPress
 Plugin URI: http://www.visitmix.com/labs/incarnate
-Description: Pull in profiles from the web to enhance your blog's commenting experience.
+Description: An alternative to gravatar. People leaving comments can choose a profile image or avatar from Twitter, Facebook, MySpace, YouTube or XBoxLive.
 Author: MIX ONLINE
-Version: 1.3
+Version: 1.2
 Author URI: http://www.visitmix.com/labs/incarnate
 */
 
@@ -216,7 +216,13 @@ function incarnate_for_wordpress_options() {
  */
 function incarnate_for_wordpress_options_html() {
 	echo("<div class='wrap'>");
-
+	
+	if(isset($_POST['incarnateswitching'])) {
+		update_option("incarnate_for_wordpress_autoinsert", (($_POST['incarnatemode'] == "true") ? TRUE : FALSE));
+	} 
+	
+	$automatic = get_option("incarnate_for_wordpress_autoinsert") != FALSE;
+	
 	if (isset($_POST['gofinal'])) {
 		/**** FINAL SUBMISSION PAGE ****************************************************************/
 	?>
@@ -239,12 +245,18 @@ function incarnate_for_wordpress_options_html() {
 		<script type="text/javascript">
 		jQuery(document).ready(function () {
 			jQuery("#show-help").click(function () {
+				jQuery('#manual-help').hide();	
 				jQuery('#incarnate-help').toggle();
 			});
 			
 			jQuery("#switch-to-manual").click(function () {
 				jQuery('#incarnate-help').hide();	
 				jQuery('#manual-help').toggle();
+			});
+
+			jQuery("#switch-to-automatic").click(function () {
+				jQuery('#automatic-help').show();
+				jQuery('#switch-to-automatic').hide();
 			});
 		});
 		</script> 
@@ -255,8 +267,13 @@ function incarnate_for_wordpress_options_html() {
 		<tr valign="top">
 			<th scope="row"><label for="incarnate_autoinsert"><strong>Configuration:</strong></label></th>
 			<td>
-				<div id='incarnate-auto yes'>Automatic</div>
-				<p><a id="switch-to-manual" href="#">Switch to Manual</a></p>
+			<?php if($automatic) { ?>
+				<div id='incarnate-auto-yes'>Automatic</div>
+				<div><a id="switch-to-manual" href="#">Switch to Manual</a></div>
+			<?php } else { ?>
+				<div id='incarnate-auto-no'>Manual</div>
+				<div><a id="switch-to-automatic" href="#">Switch to Automatic</a></div>
+			<?php } ?>
 			</td>
 		</tr> 
 		</table>
@@ -271,13 +288,29 @@ function incarnate_for_wordpress_options_html() {
 			If they don't show up automatically, we can guide you through adding each piece to your theme.  Just click "Switch To Manual".
 		</div>
 	
+		<div id="automatic-help" style="display: none;">
+		<h3>Switch To Automatic</h3>
+		If you'd like to switch back to automatic mode (for the Incarnate form and the avatars) click below.
+		
+			<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+			<div class="submit">
+					<input type="hidden" name="incarnatemode" value="true" />
+					<input type="hidden" name="incarnateswitching" value="true" />
+					<input type="submit" name="submit" value="Switch To Manual & Continue" />
+			</div>
+			</form> 
+		</div>
+		
 		<div id="manual-help" style="display: none;">
 		<h3>Switch To Manual</h3>
-		When you switch to manual you'll need to add Incarnate to your theme using the <a href="theme-editor.php">WordPress theme editor</a>.  Incarnate should be placed in the comments.php page.  Read on for details on each part.
-			<h4>Incarnate Avatar Form</h4>
+		When you switch to manual you'll need to do three things.
+			<h4>Step 1) Incarnate Avatar Form</h4>
+			
+			<p>First you need to modify the <b>comments.php</b> page of your theme so that the Incarnate form appears.  You can make this change by editing the comments.php file using the 		<a href="theme-editor.php">WordPress theme editor</a>.</p>
+			
+			<p>You'll need to look carefully through your comments.php file and find the start of the comment form.  It looks like this: &lt;form action=&quot;&lt;?php echo get_option('siteurl'); ?&gt;/wp-comments-post.php&quot; method=&quot;post&quot; id=&quot;commentform&quot; onsubmit=&quot;return validatecomment(this);&quot;&gt;.  Add this line just below it:</p>
+			
 			<p>
-			You'll need to look carefull through your comments.php file and find the new comment form.  It starts with &lt;form&gt; and has &lt;input&gt;'s for each input box.  You can insert the Incarnate form inside the &lt;form&gt;.  Go back to your site and preview it.
-			</p><p>
 			<code>
 			<?php
 echo <<<CODEEXAMPLE
@@ -287,11 +320,12 @@ CODEEXAMPLE
 			</code>
 			</p>
 			
-			<h4>Avatar Display</h4>
+			<p>To test the avatars you'll need to log out and try submitting a comment. If you pick an avatar but it doesn't display by the comment you'll need to do step 2. Please note: Avatars must be turned on in your <a href="options-discussion.php">discussion settings</a>.</p>
+			
+			<h4>Step 2) Avatar Display</h4>
 			<p>
-			To test the avatars you'll need to log out and try submitting a comment.  If you pick an avatar but it doesn't display by the comment you'll need to
-			add this line to comments.php:
-			</p><p>
+			Now that you've completed step 1 you can add the avatars to your comments.  Look carefully through your comments.php and find the comment list.  The HTML should be near the line containing &lt;?php comment_ID() ?&gt; or &lt;?php $comment->comment_ID; ?&gt;.
+			</p>
 			<code>
 			<?php 
 echo <<<CODEEXAMPLE
@@ -301,10 +335,16 @@ CODEEXAMPLE
 			</code>
 			</p>
 
+			<h4>Step 3) Turn off automatic mode</h4>
+			<p>
+			Now that you're all set up, click below to turn off automatic mode.  
+			</p>
+			
 			<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
 			<div class="submit">
-					<input type="hidden" name="gofinal" value="true" />
-					<input type="submit" name="submit" value="Switch To Manual & Continue" />
+					<input type="hidden" name="incarnatemode" value="false" />
+					<input type="hidden" name="incarnateswitching" value="true" />
+					<input type="submit" name="submit" value="Switch To Manual" />
 			</div>
 			</form> 
 
