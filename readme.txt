@@ -3,8 +3,8 @@ Contributors: MIX ONLINE
 Donate link: http://www.visitmix.com/
 Tags: comments, spam, avatar, incarnate, gravatar
 Requires at least: 2.8.0
-Tested up to: 2.8.6
-Stable tag: 1.1
+Tested up to: 2.9.1
+Stable tag: 1.2
 
 Incarnate for WordPress brings a rich avatar experience to your comments.  Enter a 
 handle from the web and easily select an avatar for a comment from providers like Facebook, 
@@ -25,8 +25,8 @@ Twitter, YouTube, MySpace and Gravatar.
 = What if Incarnate doesn't show up in my comment form? =
 
 You might have a custom theme that doesn't exactly match the WordPress guidelines.  If you'd like to use
-the plug-in with your theme you'll need to use the "Power User" code from the settings page and add it
-to your template using the instructions there.
+the plug-in with your theme you'll need to go to the settings page and follow the instructions to install
+Incarnate.
 
 = How do I change the look and feel of the Incarnate avatar selection experience? =
 
@@ -42,6 +42,10 @@ This HTML snippet works in conjunction with the incarnate.js file, which is wher
 
 == Changelog ==
 
+= 1.2 =
+* Updated automatic configuration - works with tons of themes!
+* Settings page is simple and provides help
+
 = 1.1 =
 * Fixed path issue with images
 * Fixed options page cross-browser issues
@@ -52,16 +56,16 @@ This HTML snippet works in conjunction with the incarnate.js file, which is wher
 
 == Upgrade Notice ==
 
-= 1.1 =
-Please upgrade to fix image issues and to bring back your saved Gravatars.
+= 1.2 =
+Please upgrade to make Incarnate more compatible!
 
 == Power User Help ==
 The Incarnate plug-in has two parts. First is the comment form. This will allow a commentor to select an avatar. The second part is the avatar display.
 Comment Form
 
-Normally "Automatically Add To Comments" will add the form using JavaScript. Some themes will make this impossible. For these you will need to add the comment form manually.
+Normally automatic configuration will add the form using JavaScript. Some themes will not work with this. For these you will need to add the comment form manually.
 
-First, uncheck the box for "Automatically Add To Comments" and save the changes. Next: add this code to your comment template right before the "Author" input field.
+You'll need to open the comments.php file in your theme (this can be done easily through the WordPress theme editor).  Next you'll need to find the comment form and add this line:
 
 <?php if(function_exists('incarnate_for_wordpress_insert_ui')) { incarnate_for_wordpress_insert_ui(); } ?>
 

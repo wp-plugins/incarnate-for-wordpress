@@ -1,6 +1,8 @@
 ﻿window._emailRegex = /^[a-zA-Z][\w\.-]*[a-zA-Z0-9]@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$/i;
 window._userHasSelected = false;
 
+var incarnateFormHasRendered = false; // this is a global flag we use later in the PHP/jQuery DOM injection
+
 var currentSearch = false;
 function clearSearchFlag() {
 	currentSearch = false;
@@ -18,7 +20,7 @@ jQuery(document).ready(function() {
 	}
 
     // @see incarnate.svc/providers (json) or incarnate.svc/providers.xml
-    var providers = ["Twitter", "MySpace", "Facebook", "Gravatar", "YouTube", "XBoxLive"];
+    var providers = ["Twitter", "MySpace", "Facebook", "YouTube", "XBoxLive"];
 
     var avatars = [];
     var index = 0; // paging
@@ -85,7 +87,7 @@ jQuery(document).ready(function() {
 		if (jQuery("#IncarnateUserName").val() == "") {
 			jQuery("#IncarnateResultsContainer").fadeOut(fadeDuration);
 				
-			var wpEmailField = jQuery("form[@action*=wp-comments-post] input[name=email]").val();
+			var wpEmailField = jQuery("form[action*=wp-comments-post] input[name=email]").val();
 			if(window._emailRegex.test(wpEmailField)) {
 				// there's an email in the wordpress field so we'll fall back on their gravatar
 				jQuery.getJSON(IncarnateServiceURL + "GetHash?email=" + wpEmailField + "&callback=?",
@@ -185,8 +187,8 @@ jQuery(document).ready(function() {
 	}
 	
 	// if the email is filled in but there isn't an avatar selected, pull in their gravatar
-	var wpEmailField = jQuery("form[@action*=wp-comments-post] input[name=email]").val();
-	if(wpEmailField && (!inc_readCookie("inc_avatar") || inc_readCookie("inc_avatar") == getIncarnateDefaultImage())) {
+	var wpEmailField = jQuery("form[action*=wp-comments-post] input[name=email]").val();
+	if(window._emailRegex.test(wpEmailField) && (!inc_readCookie("inc_avatar") || inc_readCookie("inc_avatar") == getIncarnateDefaultImage())) {
 		jQuery("#IncarnateUserName").val(wpEmailField);
 		Incarnate();
 	}

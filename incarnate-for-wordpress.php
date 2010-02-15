@@ -2,9 +2,9 @@
 /*
 Plugin Name: Incarnate for WordPress
 Plugin URI: http://www.visitmix.com/labs/incarnate
-Description: Pull in profiles from the web to enhance your blog's commenting experience.
+Description: An alternative to gravatar. People leaving comments can choose a profile image or avatar from Twitter, Facebook, MySpace, YouTube or XBoxLive.
 Author: MIX ONLINE
-Version: 1.1
+Version: 1.2
 Author URI: http://www.visitmix.com/labs/incarnate
 */
 
@@ -98,25 +98,33 @@ if( !function_exists('get_avatar') ) {
 	function get_avatar($id_or_email_or_comment,$size) {
 		if( is_object($id_or_email_or_comment) ) {
 			$comment = $id_or_email_or_comment;
+		} else {
+			global $comment;
 		}
 		
-		if ( ! $comment ) {
-			global $comment; // this will be a global set from our custom incarnate_for_wordpress_comment function
-			if ( ! $comment ) return false; // skip out if this isn't our call
-		}
 		if ( ! get_option('show_avatars') ) return false;
 		if ( is_admin() ) return false; /* admin doesn't get comment objects, just id/email */
 
 		if ( !is_numeric($size) )
 			$size = '96';
 
-		$out = incarnate_for_wordpress_get_avatar_by_comment($comment);
+		if(!$comment) {
+			if(is_numeric($id_or_email_or_comment)) {
+				// a user id, load that data
+				$out = incarnate_for_wordpress_get_avatar_byuserid($id_or_email_or_comment, $size);
+			} else {
+				// probably an email...?
+				$out = incarnate_for_wordpress_get_avatar_byemail($id_or_email_or_comment, $size);
+			}
+		} else {
+			$out = incarnate_for_wordpress_get_avatar_by_comment($comment);
+		}
 		$avatar = "<img src='{$out}' class='avatar avatar-{$size} photo'  width='{$size}' />";
 		
 		return apply_filters('get_avatar', $avatar, $id_or_email, $size, $default, $alt);
 	}
 }
-
+ 
 /**
  * This function can be used inside of wp_comment_list on really weird themes that override
  * the comment functionality.
@@ -161,7 +169,6 @@ function incarnate_for_wordpress_install() {
 
 	// create and update all applicable options
     update_option('incarnate_for_wordpress_version', INCARNATE_FOR_WORDPRESS_VERSION);
-	add_option('incarnate_for_wordpress_endpoint', 'http://incarnate.visitmix.com/incarnate.svc');
 	add_option('incarnate_for_wordpress_autoinsert', true);
 	
     add_option('incarnate_for_wordpress_uninstall_flag', '');
@@ -173,7 +180,6 @@ function incarnate_for_wordpress_install() {
 function incarnate_for_wordpress_uninstall() {
 	if(get_option('incarnate_for_wordpress_uninstall_flag') !== FALSE) {
 		delete_option('incarnate_for_wordpress_uninstall_flag');
-		delete_option('incarnate_for_wordpress_endpoint');
 		delete_option('incarnate_for_wordpress_autoinsert');
 	}
 }
@@ -209,50 +215,100 @@ function incarnate_for_wordpress_options() {
  * Displays the HTML for the admin options page
  */
 function incarnate_for_wordpress_options_html() {
-	if (isset($_POST['submit'])) {
-		update_option('incarnate_for_wordpress_endpoint', $_POST['incarnate_endpoint']);
-		update_option('incarnate_for_wordpress_autoinsert', ($_POST['incarnate_autoinsert'] == "on"));
-	}
+	echo("<div class='wrap'>");
+	
+	if(isset($_POST['incarnateswitching'])) {
+		update_option("incarnate_for_wordpress_autoinsert", (($_POST['incarnatemode'] == "true") ? TRUE : FALSE));
+	} 
+	
+	$automatic = get_option("incarnate_for_wordpress_autoinsert") != FALSE;
+	
+	if (isset($_POST['gofinal'])) {
+		/**** FINAL SUBMISSION PAGE ****************************************************************/
 	?>
-	<div class='wrap'>
+		<div id='icon-tools' class='icon32'><br /></div>
+		<h2>Incarnate Manual Setup</h2>
+		
+		<p>You're switched!  Thanks for setting up Incarnate for WordPress.  If you need more help, please consult the documentation.  It's always up to date at the <a href="http://wordpress.org/extend/plugins/incarnate-for-wordpress/installation/">WordPress Plug-in Directory</a>.</p>
+		
+		<p><a href="?page=incarnate-for-wordpress-options">Back to Settings</a></p>
+	<?php
+	} else {
+		/**** DEFAULT OPTIONS PAGE *****************************************************************/
+	?>
 		<div id='icon-tools' class='icon32'><br /></div>
 		<h2>Incarnate Options</h2>
 
-		<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+		<div>
+		Incarnate works automatically with most themes.  
+		
+		<script type="text/javascript">
+		jQuery(document).ready(function () {
+			jQuery("#show-help").click(function () {
+				jQuery('#manual-help').hide();	
+				jQuery('#incarnate-help').toggle();
+			});
+			
+			jQuery("#switch-to-manual").click(function () {
+				jQuery('#incarnate-help').hide();	
+				jQuery('#manual-help').toggle();
+			});
+
+			jQuery("#switch-to-automatic").click(function () {
+				jQuery('#automatic-help').show();
+				jQuery('#switch-to-automatic').hide();
+			});
+		});
+		</script> 
+		<small><a id="show-help" href="#">Not working?</a></small>
+		</div>
+		
 		<table class="form-table">
 		<tr valign="top">
-			<th scope="row"><label for="incarnate_endpoint">Webservice URL:</label></th>
+			<th scope="row"><label for="incarnate_autoinsert"><strong>Configuration:</strong></label></th>
 			<td>
-				<input name="incarnate_endpoint" id="incarnate_endpoint" size="64" value="<?php echo get_option('incarnate_for_wordpress_endpoint'); ?>" /><br />
-				<span class="description">You can host your own Incarnate webservice on Azure or use a publicly available one.</span>
+			<?php if($automatic) { ?>
+				<div id='incarnate-auto-yes'>Automatic</div>
+				<div><a id="switch-to-manual" href="#">Switch to Manual</a></div>
+			<?php } else { ?>
+				<div id='incarnate-auto-no'>Manual</div>
+				<div><a id="switch-to-automatic" href="#">Switch to Automatic</a></div>
+			<?php } ?>
 			</td>
-		</tr>
-		<tr valign="top">
-			<th scope="row"><label for="incarnate_autoinsert">Automatically Add To Comments:</label></th>
-			<td>
-				<input type="checkbox" name="incarnate_autoinsert" id="incarnate_autoinsert" <?php echo (get_option('incarnate_for_wordpress_autoinsert')) ? "checked" : ""; ?> />
-				<span class="description">Use JavaScript for zero-config installation. <br /> Power Users will want to read on below.</span>
-			</td>
-		</tr>
+		</tr> 
 		</table>
 
-		<div class="submit">
-			<input type="submit" name="submit" value="Update Options" />
+		<div id="incarnate-help" style="display: none;">
+		<h3>Help!</h3>
+			Incarnate has two major parts:
+			<ul style="list-style-type: square; margin: 15px;">
+			<li>Incarnate Avatar Form</li>
+			<li>Comment Avatars <i>(Note: please be sure to turn on "Show Avatars" in your WordPress <a href="options-discussion.php">Discussion settings</a>)</i></li>
+			</ul> 
+			If they don't show up automatically, we can guide you through adding each piece to your theme.  Just click "Switch To Manual".
 		</div>
-
-		</form>
-				
-				
-		<div class="themehelp">
-			<h3>Power Users - Manual Installation</h3>
-			The Incarnate plug-in has two parts.  First is the comment form.  This will allow a commentor to 
-			select an avatar.  The second part is the avatar display.
+	
+		<div id="automatic-help" style="display: none;">
+		<h3>Switch To Automatic</h3>
+		If you'd like to switch back to automatic mode (for the Incarnate form and the avatars) click below.
+		
+			<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+			<div class="submit">
+					<input type="hidden" name="incarnatemode" value="true" />
+					<input type="hidden" name="incarnateswitching" value="true" />
+					<input type="submit" name="submit" value="Switch To Manual & Continue" />
+			</div>
+			</form> 
+		</div>
+		
+		<div id="manual-help" style="display: none;">
+		<h3>Switch To Manual</h3>
+		When you switch to manual you'll need to do three things.
+			<h4>Step 1) Incarnate Avatar Form</h4>
 			
-			<h4>Comment Form</h4>
-			<p>Normally "Automatically Add To Comments" will add the form using JavaScript.  Some themes will 
-			make this impossible.  For these you will need to add the comment form manually.</p>
+			<p>First you need to modify the <b>comments.php</b> page of your theme so that the Incarnate form appears.  You can make this change by editing the comments.php file using the 		<a href="theme-editor.php">WordPress theme editor</a>.</p>
 			
-			<p>First, uncheck the box for "Automatically Add To Comments" and save the changes.  Next: add this code to your comment template right before the "Author" input field.</p>
+			<p>You'll need to look carefully through your comments.php file and find the start of the comment form.  It looks like this: &lt;form action=&quot;&lt;?php echo get_option('siteurl'); ?&gt;/wp-comments-post.php&quot; method=&quot;post&quot; id=&quot;commentform&quot; onsubmit=&quot;return validatecomment(this);&quot;&gt;.  Add this line just below it:</p>
 			
 			<p>
 			<code>
@@ -264,13 +320,14 @@ CODEEXAMPLE
 			</code>
 			</p>
 			
-			<h4>Avatar Display</h4>
-			<p>Normally a theme will call "get_avatar" to display the avatar next to each comment.  If that's not
-			the case then you need to add the code below inside of each comment.</p>
+			<p>To test the avatars you'll need to log out and try submitting a comment. If you pick an avatar but it doesn't display by the comment you'll need to do step 2. Please note: Avatars must be turned on in your <a href="options-discussion.php">discussion settings</a>.</p>
 			
+			<h4>Step 2) Avatar Display</h4>
 			<p>
+			Now that you've completed step 1 you can add the avatars to your comments.  Look carefully through your comments.php and find the comment list.  The HTML should be near the line containing &lt;?php comment_ID() ?&gt; or &lt;?php $comment->comment_ID; ?&gt;.
+			</p>
 			<code>
-			<?php
+			<?php 
 echo <<<CODEEXAMPLE
 &lt;?php if(function_exists('incarnate_for_wordpress_insert_avatar')) { incarnate_for_wordpress_insert_avatar(\$comment); } ?&gt;
 CODEEXAMPLE
@@ -278,7 +335,24 @@ CODEEXAMPLE
 			</code>
 			</p>
 
+			<h4>Step 3) Turn off automatic mode</h4>
+			<p>
+			Now that you're all set up, click below to turn off automatic mode.  
+			</p>
+			
+			<form name="incarnateform" method="post" action="<?php echo $_SERVER['REDIRECT_SCRIPT_URI'] ?>?page=incarnate-for-wordpress-options&updated=true">
+			<div class="submit">
+					<input type="hidden" name="incarnatemode" value="false" />
+					<input type="hidden" name="incarnateswitching" value="true" />
+					<input type="submit" name="submit" value="Switch To Manual" />
+			</div>
+			</form> 
+
 		</div> <!-- /themehelp -->
+
+	<?php 
+	}
+	?>
 	</div> <!-- /wrap -->
 	<?php
 }
@@ -290,7 +364,6 @@ CODEEXAMPLE
 function add_form_field($id) {
 	// only if the user has set the auto option
 	if(get_option("incarnate_for_wordpress_autoinsert") != FALSE) {
-		echo("OPTION: " . get_option("incarnate_for_wordpress_autoinsert"));
 		incarnate_for_wordpress_render_ui();
 	}
 }
@@ -340,7 +413,7 @@ function incarnate_for_wordpress_add_scriptlet() {
 	//<!CDATA[
 		// used to find the service and ajax images in the javascript
 		function getIncarnateImageRoot() { return "<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/"; }
-		function getIncarnateWebservice() { return "<?php echo(get_option('incarnate_for_wordpress_endpoint')); ?>"; }
+		function getIncarnateWebservice() { return "http://incarnate.visitmix.com/incarnate.svc"; }
 		function getIncarnateLoggedIn() { return <?php echo(is_user_logged_in() ? "true" : "false"); ?>; }
 		function getIncarnateDefaultImage() { 
 			return "<?php echo(incarnate_for_wordpress_get_default_avatar()); ?>"; 
@@ -404,18 +477,26 @@ function incarnate_for_wordpress_render_ui($auto = true) {
 		html += '<label><br />';
 		html += '<small>Your Gravatar</small></label>';
 		<?php else : ?>
-		html += '<input id="IncarnateUserName" type="text" />';
-		html += '<input id="IncarnateActivate" style="width: 35px;" type="button" value="Find" />';
+		html += '<input id="IncarnateUserName" type="text" size="48" style="width: 225px" />';
+		html += '<input id="IncarnateActivate" style="margin-left: 20px; width: 45px;" type="button" value="Find" />';
 		html += '<img style="display: none;" id="IncarnateLoader" src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/loader.gif" />';
-		html += '<label><br />';
-		html += '<small>Enter your name, handle, alias, or email.<br />';
-		html += 'We\'ll find you from the services below.<br /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Twitter.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Facebook.png" /><img src="<?php echo(WP_PLUGIN_URL) ?>/incarnate-for-wordpress/images/MySpace.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/YouTube.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Gravatar.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/XBoxLive.png" /></small></label>';
+		html += '<div style="display: block; float: left; width: 250px;"';
+		html += '<label>';
+		html += '<small>Enter your name, handle, alias, or email. ';
+		html += 'We\'ll find you from the services below.<br /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Twitter.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Facebook.png" /><img src="<?php echo(WP_PLUGIN_URL) ?>/incarnate-for-wordpress/images/MySpace.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/YouTube.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/Gravatar.png" /><img src="<?php echo(WP_PLUGIN_URL); ?>/incarnate-for-wordpress/images/XBoxLive.png" /></small>';
+		html += '</label></div>';
 		html += '</p>';
 		html += '<div id="IncarnateResultsContainer" style="display: none;background:#fff;position:absolute;border:1px solid #999;width:100px"></div>';
 		<?php endif; ?>
-		
-		<?php if($auto) : ?>
-		jQuery("form[@action*=wp-comments-post] p:first-child").parent().prepend("<p>" + html + "</p>");
+		html += '<div style="clear: both;">&nbsp;</div>';
+		   
+		<?php if($auto) : ?> 
+		if(incarnateFormHasRendered == false) {
+			// pull in the tag type from the children of the form (some people use 'div', some 'p')
+			var tagType = jQuery("form[action*=wp-comments-post]").children(":first").get(0).tagName.toLowerCase() == "p" ? "p" : "div";
+			jQuery("form[action*=wp-comments-post]").prepend("<" + tagType + " style=\"text-align: left;\">" + html + "</" + tagType + ">");
+			incarnateFormHasRendered = true;
+		}
 		<?php else : ?>
 		document.write(html);
 		<?php endif; ?>
@@ -525,7 +606,7 @@ function incarnate_for_wordpress_get_gravatar_by_comment($comment = FALSE) {
 		$email = $id_or_email;
 	}
 	
-		if ( empty($default) ) {
+	if ( empty($default) ) {
 		$avatar_default = get_option('avatar_default');
 		if ( empty($avatar_default) )
 			$default = 'mystery';
@@ -563,20 +644,57 @@ function incarnate_for_wordpress_get_gravatar_by_comment($comment = FALSE) {
 
 		return $out;
 	} 
-	
+	 
 	return FALSE;
 }
 
 function incarnate_for_wordpress_get_currentuser_avatar() {
 	$email = "";
+
 	$size = 64;
 
 	global $user_login , $user_email;
 	get_currentuserinfo();
 
 	if ($user_email) {  $email = $user_email; } else return incarnate_for_wordpress_get_default_avatar();
+  
+	return incarnate_for_wordpress_get_avatar_byemail($email, $size);
+}
 
+function incarnate_for_wordpress_get_avatar_byuserid($id, $size) {
+	$email = "";
+	 
+	global $user_login , $user_email;
+	$user = get_userdata($id);
+	
+	if ($user->user_email) {  $email = $user->user_email; } else return incarnate_for_wordpress_get_default_avatar();
+
+	return incarnate_for_wordpress_get_avatar_byemail($email, $size);
+}
+
+function incarnate_for_wordpress_get_avatar_byemail($email, $size) {
 	if ( is_ssl() ) { $host = 'https://secure.gravatar.com'; } else { $host = 'http://www.gravatar.com'; }
+
+	if ( empty($default) ) {
+		$avatar_default = get_option('avatar_default');
+		if ( empty($avatar_default) )
+			$default = 'mystery';
+		else
+			$default = $avatar_default;
+	}
+
+	if ( 'mystery' == $default )
+		$default = "$host/avatar/ad516503a11cd5ca435acc9bb6523536?s={$size}"; // ad516503a11cd5ca435acc9bb6523536 == md5('unknown@gravatar.com')
+	elseif ( 'blank' == $default )
+		$default = includes_url('images/blank.gif');
+	elseif ( !empty($email) && 'gravatar_default' == $default )
+		$default = '';
+	elseif ( 'gravatar_default' == $default )
+		$default = "$host/avatar/s={$size}";
+	elseif ( empty($email) )
+		$default = "$host/avatar/?d=$default&amp;s={$size}";
+	elseif ( strpos($default, 'http://') === 0 )
+		$default = add_query_arg( 's', $size, $default );
 
 	$out = "$host/avatar/";
 	$out .= md5( strtolower( $email ) );
